@@ -1,0 +1,86 @@
+{
+  "brand": {
+    "name": "MAU",
+    "tagline": "Matrimony with trust and privacy"
+  },
+  "nav": {
+    "discover": "Discover",
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "Dashboard",
+    "matches": "Matches",
+    "interests": "Interests",
+    "shortlist": "Shortlist",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Log out",
+    "home": "Home"
+  },
+  "landing": {
+    "headline": "Find Someone Who Shares Your Values",
+    "subheadline": "A privacy-first Indian matrimonial platform for families and individuals seeking a meaningful marriage match.",
+    "ctaCreate": "Create Your Profile",
+    "ctaBrowse": "Browse Profiles",
+    "howTitle": "How It Works",
+    "how1Title": "Create your profile",
+    "how1Body": "Share what matters — at your pace, with optional cultural details.",
+    "how2Title": "Discover compatible profiles",
+    "how2Body": "Search and filter respectfully across communities in India and abroad.",
+    "how3Title": "Connect with the right person",
+    "how3Body": "Express interest, connect when accepted, and chat securely.",
+    "trustTitle": "Trust & Safety",
+    "trust1": "Profile verification",
+    "trust2": "Privacy controls",
+    "trust3": "Secure communication",
+    "trust4": "Report and block",
+    "testimonialsTitle": "What families say",
+    "testimonialsNote": "Sample content for demonstration"
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in to continue your matrimonial journey",
+    "registerTitle": "Create your account",
+    "registerSubtitle": "Start a respectful, privacy-first profile",
+    "forgotTitle": "Forgot password",
+    "forgotSubtitle": "We will email you a secure reset link",
+    "resetTitle": "Set a new password",
+    "resetSubtitle": "Choose a strong password for your account",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "acceptTerms": "I agree to the Terms and Privacy Policy",
+    "loginCta": "Sign in",
+    "registerCta": "Create account",
+    "forgotCta": "Send reset link",
+    "resetCta": "Update password",
+    "noAccount": "New here?",
+    "hasAccount": "Already have an account?",
+    "forgotLink": "Forgot password?"
+  },
+  "relationship": {
+    "maternal_uncle": "Maternal Uncle",
+    "maternal_aunt": "Maternal Aunt",
+    "paternal_uncle": "Paternal Uncle",
+    "paternal_aunt": "Paternal Aunt",
+    "maternal_grandfather": "Maternal Grandfather",
+    "maternal_grandmother": "Maternal Grandmother",
+    "paternal_grandfather": "Paternal Grandfather",
+    "paternal_grandmother": "Paternal Grandmother",
+    "other": "Other"
+  },
+  "footer": {
+    "about": "About",
+    "contact": "Contact",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "safety": "Safety",
+    "help": "Help"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome to MAU",
+    "subtitle": "Your foundation is ready. Complete your profile next to start discovering matches."
+  }
+}

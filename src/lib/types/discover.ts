@@ -1,0 +1,21 @@
+export type DiscoverProfile = {
+  Id: string;
+  UserId?: string;
+  DisplayName: string;
+  Gender: string;
+  DateOfBirth: string;
+  Age: number;
+  MaritalStatus: string;
+  City: string | null;
+  State: string | null;
+  Country: string | null;
+  Religion: string | null;
+  MotherTongue: string | null;
+  Education: string | null;
+  Occupation: string | null;
+  HeightCm: number | null;
+  AboutMe: string | null;
+  IsVerified: boolean;
+  ProfileCompletion: number;
+  PrimaryPhotoUrl?: string | null;
+};

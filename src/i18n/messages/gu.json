@@ -1,0 +1,32 @@
+{
+  "brand": {
+    "name": "MAU",
+    "tagline": "વિશ્વાસ અને ગોપનીયતા સાથે લગ્ન"
+  },
+  "nav": {
+    "discover": "શોધો",
+    "login": "લૉગિન",
+    "register": "નોંધણી",
+    "dashboard": "ડેશબોર્ડ",
+    "matches": "મેચ",
+    "interests": "રસ",
+    "shortlist": "શોર્ટલિસ્ટ",
+    "messages": "સંદેશા",
+    "notifications": "સૂચનાઓ",
+    "profile": "પ્રોફાઇલ",
+    "settings": "સેટિંગ્સ",
+    "logout": "લૉગ આઉટ",
+    "home": "હોમ"
+  },
+  "relationship": {
+    "maternal_uncle": "મામા",
+    "maternal_aunt": "માસી",
+    "paternal_uncle": "કાકા",
+    "paternal_aunt": "કાકી",
+    "maternal_grandfather": "નાના",
+    "maternal_grandmother": "નાની",
+    "paternal_grandfather": "દાદા",
+    "paternal_grandmother": "દાદી",
+    "other": "અન્ય"
+  }
+}

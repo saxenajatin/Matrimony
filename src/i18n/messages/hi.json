@@ -1,0 +1,32 @@
+{
+  "brand": {
+    "name": "MAU",
+    "tagline": "विश्वास और गोपनीयता के साथ वैवाहिक मेल"
+  },
+  "nav": {
+    "discover": "खोजें",
+    "login": "लॉगिन",
+    "register": "पंजीकरण",
+    "dashboard": "डैशबोर्ड",
+    "matches": "मैच",
+    "interests": "रुचि",
+    "shortlist": "शॉर्टलिस्ट",
+    "messages": "संदेश",
+    "notifications": "सूचनाएँ",
+    "profile": "प्रोफ़ाइल",
+    "settings": "सेटिंग्स",
+    "logout": "लॉग आउट",
+    "home": "होम"
+  },
+  "relationship": {
+    "maternal_uncle": "मामा",
+    "maternal_aunt": "मौसी",
+    "paternal_uncle": "चाचा",
+    "paternal_aunt": "चाची",
+    "maternal_grandfather": "नाना",
+    "maternal_grandmother": "नानी",
+    "paternal_grandfather": "दादा",
+    "paternal_grandmother": "दादी",
+    "other": "अन्य"
+  }
+}
