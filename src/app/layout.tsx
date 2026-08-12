@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Source_Sans_3 } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
+import { getSiteUrl } from "@/lib/site-url";
 
 import "./globals.css";
 
@@ -25,9 +26,7 @@ export const metadata: Metadata = {
   },
   description:
     "A privacy-first Indian matrimonial platform for families and individuals seeking a respectful path to marriage.",
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  ),
+  metadataBase: new URL(getSiteUrl()),
   openGraph: {
     title: "MAU — Indian Matrimonial",
     description:
