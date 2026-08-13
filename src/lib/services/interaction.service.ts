@@ -336,14 +336,19 @@ export async function respondToInterest(
 export async function listInterestsForUser(
   userId: string,
   direction: "sent" | "received",
+  options?: { limit?: number; offset?: number },
 ): Promise<InterestListItem[]> {
   const admin = createAdminClient();
   const column = direction === "sent" ? "FromUserId" : "ToUserId";
+  const limit = Math.min(Math.max(options?.limit ?? 50, 1), 100);
+  const offset = Math.max(options?.offset ?? 0, 0);
+
   const { data, error } = await admin
     .from("AMVS_Interests")
     .select("*")
     .eq(column, userId)
-    .order("CreatedAt", { ascending: false });
+    .order("CreatedAt", { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) throw error;
 
@@ -362,6 +367,23 @@ export async function listInterestsForUser(
       Profile: profiles.get(counterpartyUserId) ?? null,
     };
   });
+}
+
+export async function countInterestsForUser(
+  userId: string,
+  direction: "sent" | "received",
+  status?: string,
+): Promise<number> {
+  const admin = createAdminClient();
+  const column = direction === "sent" ? "FromUserId" : "ToUserId";
+  let query = admin
+    .from("AMVS_Interests")
+    .select("Id", { count: "exact", head: true })
+    .eq(column, userId);
+  if (status) query = query.eq("Status", status);
+  const { count, error } = await query;
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function addToShortlist(userId: string, targetUserId: string) {
@@ -399,13 +421,20 @@ export async function removeFromShortlist(
   if (error) throw error;
 }
 
-export async function listShortlist(userId: string): Promise<ShortlistItem[]> {
+export async function listShortlist(
+  userId: string,
+  options?: { limit?: number; offset?: number },
+): Promise<ShortlistItem[]> {
   const admin = createAdminClient();
+  const limit = Math.min(Math.max(options?.limit ?? 50, 1), 100);
+  const offset = Math.max(options?.offset ?? 0, 0);
+
   const { data, error } = await admin
     .from("AMVS_Shortlist")
     .select("*")
     .eq("UserId", userId)
-    .order("CreatedAt", { ascending: false });
+    .order("CreatedAt", { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) throw error;
   const rows = data ?? [];
@@ -421,6 +450,16 @@ export async function listShortlist(userId: string): Promise<ShortlistItem[]> {
     CreatedAt: row.CreatedAt as string,
     Profile: profiles.get(row.TargetUserId as string) ?? null,
   }));
+}
+
+export async function countShortlist(userId: string): Promise<number> {
+  const admin = createAdminClient();
+  const { count, error } = await admin
+    .from("AMVS_Shortlist")
+    .select("Id", { count: "exact", head: true })
+    .eq("UserId", userId);
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function blockUser(

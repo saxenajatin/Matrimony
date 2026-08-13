@@ -15,6 +15,13 @@ const optionalLongText = z.preprocess(
   z.string().trim().max(2000).nullable(),
 );
 
+/** Avoid z.coerce.number() turning empty/null into 0 (fails min(1)). */
+const optionalPada = z.preprocess((value) => {
+  if (value === "" || value === undefined || value === null) return null;
+  const num = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(num) ? num : null;
+}, z.number().int().min(1).max(4).nullable());
+
 export const horoscopeSchema = z.object({
   birthDate: z.preprocess(emptyToNull, z.string().nullable()),
   birthTime: z.preprocess(emptyToNull, z.string().nullable()),
@@ -24,10 +31,7 @@ export const horoscopeSchema = z.object({
   birthCountry: optionalText,
   rashi: optionalText,
   nakshatra: optionalText,
-  nakshatraPada: z.preprocess(
-    emptyToNull,
-    z.coerce.number().int().min(1).max(4).nullable(),
-  ),
+  nakshatraPada: optionalPada,
   lagna: optionalText,
   manglikStatus: z.preprocess(
     emptyToNull,

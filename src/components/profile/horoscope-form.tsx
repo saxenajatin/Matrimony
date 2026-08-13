@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
 import { AuthFormMessage } from "@/components/auth/auth-form-message";
 import {
@@ -27,11 +27,20 @@ type HoroscopeFormProps = {
   kundliDocuments: KundliDocument[];
   showSkip?: boolean;
   onSkip?: () => void;
+  onSuccess?: () => void;
+  submitLabel?: string;
 };
 
 function str(value: unknown) {
   if (value === null || value === undefined) return "";
   return String(value);
+}
+
+/** date inputs need YYYY-MM-DD; Postgres/ISO may include time. */
+function dateInputValue(value: unknown) {
+  const raw = str(value);
+  if (!raw) return "";
+  return raw.slice(0, 10);
 }
 
 const initial: HoroscopeActionState = {};
@@ -41,12 +50,20 @@ export function HoroscopeForm({
   kundliDocuments,
   showSkip,
   onSkip,
+  onSuccess,
+  submitLabel = "Save horoscope",
 }: HoroscopeFormProps) {
   const [state, action, pending] = useActionState(saveHoroscopeAction, initial);
   const [uploadState, uploadAction, uploadPending] = useActionState(
     uploadKundliAction,
     initial,
   );
+
+  useEffect(() => {
+    if (state.success) {
+      onSuccess?.();
+    }
+  }, [state.success, onSuccess]);
 
   return (
     <div className="space-y-6">
@@ -60,7 +77,7 @@ export function HoroscopeForm({
             name="birthDate"
             label="Birth date"
             type="date"
-            defaultValue={str(values?.BirthDate)}
+            defaultValue={dateInputValue(values?.BirthDate)}
           />
           <TextField
             name="birthTime"
@@ -149,7 +166,7 @@ export function HoroscopeForm({
         <AuthFormMessage error={state.error} success={state.success} />
         <div className="flex flex-wrap gap-2">
           <Button type="submit" disabled={pending}>
-            {pending ? "Saving..." : "Save horoscope"}
+            {pending ? "Saving..." : submitLabel}
           </Button>
           {showSkip && onSkip ? (
             <Button type="button" variant="ghost" onClick={onSkip}>

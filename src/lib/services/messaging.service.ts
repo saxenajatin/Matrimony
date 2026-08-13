@@ -208,6 +208,62 @@ export async function getConversationForUser(
 
 export async function listConversations(
   userId: string,
+  options?: { limit?: number; offset?: number },
+): Promise<ConversationListItem[]> {
+  const admin = createAdminClient();
+  const limit = Math.min(Math.max(options?.limit ?? 50, 1), 100);
+  const offset = Math.max(options?.offset ?? 0, 0);
+
+  const { data, error } = await admin.rpc("AMVS_ListConversationsForUser", {
+    p_user_id: userId,
+    p_limit: limit,
+    p_offset: offset,
+  });
+
+  if (!error && Array.isArray(data)) {
+    return data.map((row) => {
+      const otherUserId = row.OtherUserId as string;
+      const profile = otherUserId
+        ? ({
+            Id: otherUserId,
+            UserId: otherUserId,
+            DisplayName: (row.OtherDisplayName as string | null) ?? "Member",
+            Gender: (row.OtherGender as string | null) ?? "",
+            DateOfBirth: "",
+            Age: 0,
+            MaritalStatus: "",
+            City: (row.OtherCity as string | null) ?? null,
+            State: null,
+            Country: null,
+            Religion: null,
+            MotherTongue: null,
+            Education: null,
+            Occupation: null,
+            HeightCm: null,
+            AboutMe: null,
+            IsVerified: Boolean(row.OtherIsVerified),
+            ProfileCompletion: 0,
+            PrimaryPhotoUrl: null,
+          } satisfies DiscoverProfile)
+        : null;
+      return {
+        Id: row.Id as string,
+        OtherUserId: otherUserId,
+        OtherProfile: profile,
+        LastMessageAt: (row.LastMessageAt as string | null) ?? null,
+        LastMessagePreview: (row.LastMessagePreview as string | null) ?? null,
+        UnreadCount: Number(row.UnreadCount ?? 0),
+      };
+    });
+  }
+
+  // Fallback if Phase 11 RPC is not applied yet
+  return listConversationsLegacy(userId, limit);
+}
+
+async function listConversationsLegacy(
+  userId: string,
+  limit: number,
 ): Promise<ConversationListItem[]> {
   const admin = createAdminClient();
   const { data: memberships, error } = await admin
@@ -229,13 +285,29 @@ export async function listConversations(
     .from("AMVS_Conversations")
     .select("*")
     .in("Id", conversationIds)
-    .order("LastMessageAt", { ascending: false });
+    .order("LastMessageAt", { ascending: false })
+    .limit(limit);
   if (convError) throw convError;
 
   const otherIds = (conversations ?? []).map((row) =>
-    row.UserLowId === userId ? (row.UserHighId as string) : (row.UserLowId as string),
+    row.UserLowId === userId
+      ? (row.UserHighId as string)
+      : (row.UserLowId as string),
   );
-  const profiles = await loadProfileMap(otherIds);
+
+  const [{ data: blockRows }, profiles] = await Promise.all([
+    admin
+      .from("AMVS_Blocks")
+      .select("BlockerUserId, BlockedUserId")
+      .or(`BlockerUserId.eq.${userId},BlockedUserId.eq.${userId}`),
+    loadProfileMap(otherIds),
+  ]);
+
+  const blocked = new Set<string>();
+  for (const row of blockRows ?? []) {
+    if (row.BlockerUserId === userId) blocked.add(row.BlockedUserId as string);
+    if (row.BlockedUserId === userId) blocked.add(row.BlockerUserId as string);
+  }
 
   const items: ConversationListItem[] = [];
   for (const row of conversations ?? []) {
@@ -243,8 +315,7 @@ export async function listConversations(
       row.UserLowId === userId
         ? (row.UserHighId as string)
         : (row.UserLowId as string);
-
-    if (await areUsersBlocked(userId, otherUserId)) continue;
+    if (blocked.has(otherUserId)) continue;
 
     const { data: lastMessages } = await admin
       .from("AMVS_Messages")
@@ -445,6 +516,6 @@ export async function openConversationWithUser(
 }
 
 export async function countUnreadConversations(userId: string) {
-  const items = await listConversations(userId);
+  const items = await listConversations(userId, { limit: 100 });
   return items.filter((item) => item.UnreadCount > 0).length;
 }

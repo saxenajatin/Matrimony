@@ -66,6 +66,13 @@ export async function getHoroscope(userId: string) {
   return (data as HoroscopeRow | null) ?? null;
 }
 
+function normalizeBirthTime(value: string | null) {
+  if (!value) return null;
+  // HTML time inputs are HH:MM; Postgres time accepts HH:MM:SS.
+  if (/^\d{2}:\d{2}$/.test(value)) return `${value}:00`;
+  return value;
+}
+
 export async function upsertHoroscope(userId: string, input: HoroscopeInput) {
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -74,7 +81,7 @@ export async function upsertHoroscope(userId: string, input: HoroscopeInput) {
       {
         UserId: userId,
         BirthDate: input.birthDate,
-        BirthTime: input.birthTime,
+        BirthTime: normalizeBirthTime(input.birthTime),
         BirthPlace: input.birthPlace,
         BirthCity: input.birthCity,
         BirthState: input.birthState,

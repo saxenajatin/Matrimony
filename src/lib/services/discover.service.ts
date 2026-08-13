@@ -1,13 +1,17 @@
 import "server-only";
 
+import { DEFAULT_PRIVACY } from "@/lib/constants/privacy";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getPrimaryPhotoUrl,
+  getPrimaryPhotoUrlsBatch,
   listUserPhotos,
 } from "@/lib/services/photo.service";
 import {
   applyPrivacyToPublicProfile,
   getPrivacySettings,
+  getPrivacySettingsBatch,
+  type ProfilePrivacy,
 } from "@/lib/services/privacy.service";
 import type { DiscoverProfile } from "@/lib/types/discover";
 import {
@@ -43,36 +47,60 @@ function toRpcFilters(filters: DiscoverFilters, excludeUserId?: string) {
   };
 }
 
-async function enrichDiscoverRow(
+function enrichWithPrivacy(
   row: DiscoverProfile,
-): Promise<DiscoverProfile | null> {
-  const userId = row.UserId;
-  if (!userId) {
-    return { ...row, PrimaryPhotoUrl: null };
-  }
-
-  let privacy;
-  try {
-    privacy = await getPrivacySettings(userId);
-  } catch {
-    return { ...row, PrimaryPhotoUrl: null };
-  }
-
+  privacy: ProfilePrivacy,
+  primaryPhotoUrl: string | null,
+): DiscoverProfile | null {
   if (!privacy.ProfileVisible || !privacy.AllowProfileViews) {
     return null;
   }
 
-  const primaryPhotoUrl = privacy.ShowPhotos
-    ? await getPrimaryPhotoUrl(userId)
-    : null;
-
   return applyPrivacyToPublicProfile(
     {
       ...row,
-      PrimaryPhotoUrl: primaryPhotoUrl,
+      PrimaryPhotoUrl: privacy.ShowPhotos ? primaryPhotoUrl : null,
     },
     privacy,
   ) as DiscoverProfile;
+}
+
+async function enrichDiscoverRows(
+  rows: DiscoverProfile[],
+): Promise<DiscoverProfile[]> {
+  const userIds = rows
+    .map((row) => row.UserId)
+    .filter((id): id is string => Boolean(id));
+
+  const [privacyMap, photoMap] = await Promise.all([
+    getPrivacySettingsBatch(userIds),
+    getPrimaryPhotoUrlsBatch(userIds),
+  ]);
+
+  const enriched: DiscoverProfile[] = [];
+  for (const row of rows) {
+    if (!row.UserId) {
+      enriched.push({ ...row, PrimaryPhotoUrl: null });
+      continue;
+    }
+    const privacy =
+      privacyMap.get(row.UserId) ??
+      ({ ...DEFAULT_PRIVACY, UserId: row.UserId } as ProfilePrivacy);
+    const next = enrichWithPrivacy(
+      row,
+      privacy,
+      photoMap.get(row.UserId) ?? null,
+    );
+    if (next) enriched.push(next);
+  }
+  return enriched;
+}
+
+async function enrichDiscoverRow(
+  row: DiscoverProfile,
+): Promise<DiscoverProfile | null> {
+  const [enriched] = await enrichDiscoverRows([row]);
+  return enriched ?? null;
 }
 
 export async function searchDiscoverProfiles(options: {
@@ -89,24 +117,38 @@ export async function searchDiscoverProfiles(options: {
   const offset = (page - 1) * pageSize;
   const rpcFilters = toRpcFilters(options.filters, options.excludeUserId);
 
+  // Skip exact COUNT on deep pages (>5) — use hasMore heuristic for scale.
+  const needExactCount = page <= 5;
   const [listResult, countResult] = await Promise.all([
     admin.rpc("AMVS_SearchDiscoverProfiles", {
       ...rpcFilters,
       p_limit: pageSize,
       p_offset: offset,
     }),
-    admin.rpc("AMVS_CountDiscoverProfiles", rpcFilters),
+    needExactCount
+      ? admin.rpc("AMVS_CountDiscoverProfiles", rpcFilters)
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
   if (listResult.error) throw listResult.error;
   if (countResult.error) throw countResult.error;
 
   const rows = (listResult.data ?? []) as DiscoverProfile[];
-  const total = Number(countResult.data ?? 0);
-  const enriched = await Promise.all(rows.map((row) => enrichDiscoverRow(row)));
+  const enriched = await enrichDiscoverRows(rows);
+
+  let total: number;
+  if (needExactCount) {
+    total = Number(countResult.data ?? 0);
+  } else {
+    // Approximate: at least current page window; +1 page if full page returned.
+    total =
+      rows.length < pageSize
+        ? offset + enriched.length
+        : offset + pageSize + 1;
+  }
 
   return {
-    profiles: enriched.filter(Boolean) as DiscoverProfile[],
+    profiles: enriched,
     total,
     page,
     pageSize,

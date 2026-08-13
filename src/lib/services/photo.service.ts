@@ -76,30 +76,44 @@ export async function createPhotoSignedUrl(
 export async function getPrimaryPhotoUrl(
   userId: string,
 ): Promise<string | null> {
+  const map = await getPrimaryPhotoUrlsBatch([userId]);
+  return map.get(userId) ?? null;
+}
+
+/** One query + parallel signed URLs for Discover/Matches pages. */
+export async function getPrimaryPhotoUrlsBatch(
+  userIds: string[],
+): Promise<Map<string, string | null>> {
+  const unique = [...new Set(userIds.filter(Boolean))];
+  const result = new Map<string, string | null>();
+  for (const id of unique) result.set(id, null);
+  if (unique.length === 0) return result;
+
   const admin = createAdminClient();
-  const { data } = await admin
+  const { data, error } = await admin
     .from("AMVS_ProfilePhotos")
-    .select("StoragePath")
-    .eq("UserId", userId)
-    .eq("IsPrimary", true)
+    .select("UserId, StoragePath, IsPrimary, SortOrder")
+    .in("UserId", unique)
     .eq("ModerationStatus", "approved")
-    .maybeSingle();
+    .order("IsPrimary", { ascending: false })
+    .order("SortOrder", { ascending: true });
 
-  const path =
-    data?.StoragePath ??
-    (
-      await admin
-        .from("AMVS_ProfilePhotos")
-        .select("StoragePath")
-        .eq("UserId", userId)
-        .eq("ModerationStatus", "approved")
-        .order("SortOrder", { ascending: true })
-        .limit(1)
-        .maybeSingle()
-    ).data?.StoragePath;
+  if (error) throw error;
 
-  if (!path) return null;
-  return createPhotoSignedUrl(path);
+  const pathByUser = new Map<string, string>();
+  for (const row of data ?? []) {
+    const userId = row.UserId as string;
+    if (pathByUser.has(userId)) continue;
+    pathByUser.set(userId, row.StoragePath as string);
+  }
+
+  await Promise.all(
+    [...pathByUser.entries()].map(async ([userId, path]) => {
+      result.set(userId, await createPhotoSignedUrl(path));
+    }),
+  );
+
+  return result;
 }
 
 export async function uploadProfilePhoto(userId: string, file: File) {

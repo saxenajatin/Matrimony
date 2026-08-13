@@ -13,10 +13,12 @@ import {
 } from "@/components/ui/card";
 import { isAdmin } from "@/lib/auth/roles";
 import { getCurrentUser } from "@/lib/auth/session";
-import { listInterestsForUser } from "@/lib/services/interaction.service";
+import {
+  countInterestsForUser,
+  countShortlist,
+} from "@/lib/services/interaction.service";
 import { getRecommendedMatches } from "@/lib/services/match.service";
 import { getMyProfileBundle } from "@/lib/services/profile.service";
-import { listShortlist } from "@/lib/services/interaction.service";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -58,17 +60,17 @@ export default async function DashboardPage() {
   }
 
   try {
-    const [received, sent, shortlist, recommended] = await Promise.all([
-      listInterestsForUser(user.id, "received"),
-      listInterestsForUser(user.id, "sent"),
-      listShortlist(user.id),
-      getRecommendedMatches({ viewerUserId: user.id, limit: 3 }),
-    ]);
-    pendingReceived = received.filter((item) => item.Status === "pending").length;
-    acceptedConnections =
-      received.filter((item) => item.Status === "accepted").length +
-      sent.filter((item) => item.Status === "accepted").length;
-    shortlistCount = shortlist.length;
+    const [pending, acceptedRecv, acceptedSent, shortlistTotal, recommended] =
+      await Promise.all([
+        countInterestsForUser(user.id, "received", "pending"),
+        countInterestsForUser(user.id, "received", "accepted"),
+        countInterestsForUser(user.id, "sent", "accepted"),
+        countShortlist(user.id),
+        getRecommendedMatches({ viewerUserId: user.id, limit: 3 }),
+      ]);
+    pendingReceived = pending;
+    acceptedConnections = acceptedRecv + acceptedSent;
+    shortlistCount = shortlistTotal;
     recommendations = recommended.matches;
   } catch {
     // Phase 5/6 may not be applied yet

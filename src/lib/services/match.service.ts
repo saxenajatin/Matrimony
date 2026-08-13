@@ -1,12 +1,11 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  getPrimaryPhotoUrl,
-} from "@/lib/services/photo.service";
+import { getPrimaryPhotoUrlsBatch } from "@/lib/services/photo.service";
 import {
   applyPrivacyToPublicProfile,
   getPrivacySettings,
+  getPrivacySettingsBatch,
 } from "@/lib/services/privacy.service";
 import {
   calculateMatchScore,
@@ -225,7 +224,11 @@ export async function getRecommendedMatches(options: {
   const userIds = profiles
     .map((profile) => profile.UserId)
     .filter((id): id is string => Boolean(id));
-  const factsMap = await loadCandidateFacts(userIds);
+  const [factsMap, privacyMap, photoMap] = await Promise.all([
+    loadCandidateFacts(userIds),
+    getPrivacySettingsBatch(userIds),
+    getPrimaryPhotoUrlsBatch(userIds),
+  ]);
 
   const scored: RecommendedMatch[] = [];
   for (const profile of profiles) {
@@ -234,28 +237,30 @@ export async function getRecommendedMatches(options: {
     if (!facts) continue;
 
     try {
-      const privacy = await getPrivacySettings(profile.UserId);
-      if (!privacy.ShowReligion) {
-        facts.Religion = null;
-        facts.MotherTongue = null;
-        facts.Community = null;
+      const privacy = privacyMap.get(profile.UserId);
+      if (privacy) {
+        if (!privacy.ShowReligion) {
+          facts.Religion = null;
+          facts.MotherTongue = null;
+          facts.Community = null;
+        }
+        if (!privacy.ShowHoroscope) {
+          facts.ManglikStatus = null;
+          facts.Rashi = null;
+          facts.Nakshatra = null;
+          facts.Gotra = null;
+          facts.HoroscopeAvailable = false;
+        }
+        if (!privacy.ShowPhotos) {
+          profile.PrimaryPhotoUrl = null;
+        } else if (!profile.PrimaryPhotoUrl) {
+          profile.PrimaryPhotoUrl = photoMap.get(profile.UserId) ?? null;
+        }
+        Object.assign(
+          profile,
+          applyPrivacyToPublicProfile(profile, privacy),
+        );
       }
-      if (!privacy.ShowHoroscope) {
-        facts.ManglikStatus = null;
-        facts.Rashi = null;
-        facts.Nakshatra = null;
-        facts.Gotra = null;
-        facts.HoroscopeAvailable = false;
-      }
-      if (!privacy.ShowPhotos) {
-        profile.PrimaryPhotoUrl = null;
-      } else if (!profile.PrimaryPhotoUrl) {
-        profile.PrimaryPhotoUrl = await getPrimaryPhotoUrl(profile.UserId);
-      }
-      Object.assign(
-        profile,
-        applyPrivacyToPublicProfile(profile, privacy),
-      );
     } catch {
       // continue
     }

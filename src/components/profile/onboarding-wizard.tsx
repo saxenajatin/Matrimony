@@ -680,6 +680,8 @@ export function OnboardingWizard({
               kundliDocuments={bundle.kundliDocuments ?? []}
               showSkip
               onSkip={goNext}
+              onSuccess={onSaved}
+              submitLabel="Save & continue"
             />
           ) : null}
 
